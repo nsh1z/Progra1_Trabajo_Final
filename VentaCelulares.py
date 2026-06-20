@@ -157,7 +157,7 @@ def agregar_al_carrito():
                     # bajo el stock
                     inventario[id_prod]["stock"] -= cantidad
                     guardar_inventario(inventario) # guardamos los cambios
-                    subtotal = inventario[id_prod]["precio"] * cantidad# Verificar si el producto ya existe en el carrito
+                    subtotal = inventario[id_prod]["precio"] * cantidad
                     producto_encontrado = False
                     
                     for i in range(len(carrito)):
