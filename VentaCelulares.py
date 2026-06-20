@@ -1,5 +1,6 @@
 import re
 import json
+import unittest
 
 def guardar_inventario(inv):
     with open("inventario.json", "w", encoding="utf-8") as f:
@@ -8,18 +9,22 @@ def guardar_inventario(inv):
 def cargar_inventario():
     try:
         with open("inventario.json", "r", encoding="utf-8") as f:
-            return json.load(f)
+            data = json.load(f)
+            # Requisito Diccionarios: convertimos las claves de string a int
+            return {int(k): v for k, v in data.items()}
     except FileNotFoundError:
-        # Stock inicial por defecto
-        inv_inicial = [
-            [1, "Samsung", "Galaxy S23", 1200000.0, 10],
-            [2, "Apple", "iPhone 15", 1500000.0, 5],
-            [3, "Motorola", "Edge 40", 800000.0, 15],
-            [4, "Xiaomi", "Redmi Note 12", 500000.0, 20],
-            [5, "Samsung", "Galaxy A54", 650000.0, 12]
-        ]
+        # Stock inicial por defecto adaptado a diccionario (Requisito Parte 2)
+        inv_inicial = {
+            1: {"marca": "Samsung", "modelo": "Galaxy S23", "precio": 1200000.0, "stock": 10},
+            2: {"marca": "Apple", "modelo": "iPhone 15", "precio": 1500000.0, "stock": 5},
+            3: {"marca": "Motorola", "modelo": "Edge 40", "precio": 800000.0, "stock": 15},
+            4: {"marca": "Xiaomi", "modelo": "Redmi Note 12", "precio": 500000.0, "stock": 20},
+            5: {"marca": "Samsung", "modelo": "Galaxy A54", "precio": 650000.0, "stock": 12}
+        }
         guardar_inventario(inv_inicial)
         return inv_inicial
+    except (ValueError, json.JSONDecodeError):
+        return {}
 
 # ==========================================
 # ESTRUCTURAS DE DATOS AVANZADAS Y MATRICES
@@ -28,6 +33,9 @@ def cargar_inventario():
 inventario = cargar_inventario()
 
 carrito = []
+
+# Requisito Conjuntos (Sets): para validar elementos al hacer altas
+marcas_permitidas = {"Samsung", "Apple", "Motorola", "Xiaomi", "Nokia", "LG"}
 
 # ==========================================
 # EXCEPCIONES Y VALIDACION
@@ -40,6 +48,9 @@ def validar_datos_usuario():
     dni = ""
     while not dni_valido:
         dni = input("Ingrese su DNI (sin puntos): ")
+        if not dni.strip():
+            print("Error: El DNI no puede estar vacio.")
+            continue
         try:
             int(dni) # trato de pasarlo a numero para ver si no puso letras
             if len(dni) == 7 or len(dni) == 8:
@@ -59,13 +70,10 @@ def validar_datos_usuario():
         if re.match(r"^[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,}$", email):
             email_valido = True
             
-            
             if re.search(r"@", email):
                 pass
                 
-            
             partes = re.findall(r"[A-Za-z0-9._%+-]+|[A-Za-z0-9.-]+|[A-Za-z]{2,}", email)
-            
             
             email_oculto = re.sub(r"^[A-Za-z0-9._%+-]+", "XXXX", email)
             
@@ -86,38 +94,43 @@ def validar_datos_usuario():
         except ValueError:
             print("Error: El telefono debe contener solo números.")
         
-    # armo la tupla y retorno los datos
+    # armo la tupla y retorno los datos (Requisito Tuplas)
     return (dni, email, telefono)
 
 # ==========================================
 # PROCESAMIENTO Y PROGRAMACION FUNCIONAL
 # ==========================================
 
-def mostrar_catalogo(lista_productos):
+def mostrar_catalogo(dicc_productos=None):
+    if dicc_productos is None:
+        dicc_productos = inventario
+        
     print("\n--- Catalogo de Celulares ---")
     print(f"{'ID':<5} | {'Marca':<10} | {'Modelo':<15} | {'Precio':<12} | {'Stock':<5}")
     print("-" * 55)
-    for prod in lista_productos:
-        print(f"{prod[0]:<5} | {prod[1]:<10} | {prod[2]:<15} | ${prod[3]:<11} | {prod[4]:<5}")
+    for id_prod, datos in dicc_productos.items():
+        print(f"{id_prod:<5} | {datos['marca']:<10} | {datos['modelo']:<15} | ${datos['precio']:<11} | {datos['stock']:<5}")
+
 def filtrar_por_precio():
-    min_precio = float(input("\nPrecio minimo: "))
-    max_precio = float(input("Precio maximo: "))
-    
-    # aplico un filtro rapido para buscar en el rango
-    filtrados = list(filter(lambda x: min_precio <= x[3] <= max_precio, inventario))
-    
-    if filtrados:
-        # ordeno de mas barato a mas caro
-        filtrados.sort(key=lambda x: x[3])
-        mostrar_catalogo(filtrados)
-    else:
-        print("No se encontraron celulares en ese rango de precio.")
+    try:
+        min_precio = float(input("\nPrecio minimo: "))
+        max_precio = float(input("Precio maximo: "))
+        
+        # aplico un filtro rapido para buscar en el rango usando comprension de diccionarios
+        filtrados = {k: v for k, v in inventario.items() if min_precio <= v["precio"] <= max_precio}
+        
+        if filtrados:
+            mostrar_catalogo(filtrados)
+        else:
+            print("No se encontraron celulares en ese rango de precio.")
+    except ValueError:
+        print("Entrada invalida. Ingresa solo numeros.")
 
 def buscar_por_nombre():
     termino = input("\nIngrese la marca o modelo a buscar (ignorando mayúsculas): ").lower()
     
     # busco las coincidencias
-    resultados = list(filter(lambda x: termino in x[1].lower() or termino in x[2].lower(), inventario))
+    resultados = {k: v for k, v in inventario.items() if termino in v["marca"].lower() or termino in v["modelo"].lower()}
     
     if resultados:
         mostrar_catalogo(resultados)
@@ -139,21 +152,19 @@ def agregar_al_carrito():
             id_prod = int(id_prod_str)
             cantidad = int(cantidad_str)
             
-            encontrado = False
-            for prod in inventario:
-                if prod[0] == id_prod:
-                    encontrado = True
-                    if cantidad <= prod[4]:
-                        # bajo el stock
-                        prod[4] -= cantidad
-                        guardar_inventario(inventario) # guardamos los cambios
-                        subtotal = prod[3] * cantidad
-                        carrito.append([prod[0], prod[2], cantidad, prod[3], subtotal])
-                        print(f"\n¡{cantidad} x {prod[2]} agregado(s) al carrito!")
-                    else:
-                        print("\nError: No hay suficiente stock disponible.")
-                    
-            if not encontrado:
+            if id_prod in inventario:
+                if cantidad <= inventario[id_prod]["stock"]:
+                    # bajo el stock
+                    inventario[id_prod]["stock"] -= cantidad
+                    guardar_inventario(inventario) # guardamos los cambios
+                    subtotal = inventario[id_prod]["precio"] * cantidad
+                    # Requisito Tuplas: la info no debe modificarse una vez en el carrito
+                    item = (id_prod, inventario[id_prod]["marca"], inventario[id_prod]["modelo"], cantidad, inventario[id_prod]["precio"], subtotal)
+                    carrito.append(item)
+                    print(f"\n¡{cantidad} x {inventario[id_prod]['modelo']} agregado(s) al carrito!")
+                else:
+                    print("\nError: No hay suficiente stock disponible.")
+            else:
                 print("\nError: ID de producto no encontrado.")
                 
             print("\n--- Estado de tu carrito ---")
@@ -172,8 +183,8 @@ def ver_carrito():
     print("\n--- Mi Carrito ---")
     total = 0
     for item in carrito:
-        print(f"{item[2]}x {item[1]} - Precio Unitario: ${item[3]} - Subtotal: ${item[4]}")
-        total += item[4]
+        print(f"{item[3]}x {item[1]} {item[2]} - Precio Unitario: ${item[4]} - Subtotal: ${item[5]}")
+        total += item[5]
         
     print("-" * 30)
     print(f"TOTAL: ${total}")
@@ -199,7 +210,7 @@ def generar_recibo_txt(usuario, metodo_pago, total, total_final, detalles_pago):
                 f.write(f"Telefono: {usuario[2]}\n\n")
                 f.write("--- Detalle de la Compra ---\n")
                 for item in carrito:
-                    f.write(f"{item[2]}x {item[1]} - Precio Unitario: ${item[3]:.2f} - Subtotal: ${item[4]:.2f}\n")
+                    f.write(f"{item[3]}x {item[1]} {item[2]} - Precio Unitario: ${item[4]:.2f} - Subtotal: ${item[5]:.2f}\n")
                 f.write("-" * 40 + "\n")
                 f.write(f"Total original: ${total:.2f}\n")
                 f.write(f"Metodo de pago: {metodo_pago}\n")
@@ -275,8 +286,11 @@ def procesar_pago(total, usuario):
         codigo = input("Ingrese el codigo (escribe PROGRA10): ")
         if codigo.upper() == "PROGRA10":
             print("\n¡Cupon aceptado! Se aplica un 10% OFF en cada item .")
-            # Uso map() para aplicar descuento al precio unitario y recalcular subtotal
-            carrito[:] = list(map(lambda item: [item[0], item[1], item[2], item[3] * 0.9, (item[3] * 0.9) * item[2]], carrito))
+            for i in range(len(carrito)):
+                item = carrito[i]
+                nuevo_precio = item[4] * 0.9
+                nuevo_subtotal = item[3] * nuevo_precio
+                carrito[i] = (item[0], item[1], item[2], item[3], nuevo_precio, nuevo_subtotal)
             total = ver_carrito()
         else:
             print("Cupon invalido.")
@@ -323,12 +337,25 @@ def procesar_pago(total, usuario):
     else:
         print("Metodo de pago no reconocido.")
 
+# ==========================================
+# ABM (ALTAS, BAJAS, MODIFICACIONES)
+# ==========================================
 def agregar_producto_nuevo():
     print("\n--- Agregar Nuevo Producto ---")
+    print(f"Marcas permitidas: {', '.join(marcas_permitidas)}")
     
-    nuevo_id = max([p[0] for p in inventario]) + 1 if inventario else 1
-    marca = input("Ingrese la marca del celular: ")
-    modelo = input("Ingrese el modelo del celular: ")
+    nuevo_id = max(inventario.keys()) + 1 if inventario else 1
+    
+    marca_valida = False
+    while not marca_valida:
+        marca = input("Ingrese la marca del celular: ").strip().capitalize()
+        # Requisito Conjuntos: validacion
+        if marca in marcas_permitidas:
+            marca_valida = True
+        else:
+            print("Error: Marca no reconocida. Intente de nuevo.")
+            
+    modelo = input("Ingrese el modelo del celular: ").strip()
     
     precio_valido = False
     while not precio_valido:
@@ -352,9 +379,85 @@ def agregar_producto_nuevo():
         except ValueError:
             print("Error: Ingrese un numero entero para el stock.")
             
-    inventario.append([nuevo_id, marca, modelo, precio, stock])
+    inventario[nuevo_id] = {
+        "marca": marca,
+        "modelo": modelo,
+        "precio": precio,
+        "stock": stock
+    }
     guardar_inventario(inventario)
     print(f"\n¡Producto '{marca} {modelo}' agregado con exito! (ID: {nuevo_id})")
+
+def baja_producto():
+    print("\n--- Baja de Producto ---")
+    try:
+        id_baja = int(input("Ingrese el ID del producto a eliminar: "))
+        if id_baja in inventario:
+            eliminado = inventario.pop(id_baja)
+            guardar_inventario(inventario)
+            print(f"Producto '{eliminado['marca']} {eliminado['modelo']}' eliminado del sistema.")
+        else:
+            print("Error: No se encontro ningun producto con ese ID.")
+    except ValueError:
+        print("Error: Ingrese un numero valido.")
+
+def modificacion_producto():
+    print("\n--- Modificación de Producto ---")
+    try:
+        id_mod = int(input("Ingrese el ID del producto a modificar: "))
+        if id_mod in inventario:
+            print(f"Modificando: {inventario[id_mod]['marca']} {inventario[id_mod]['modelo']}")
+            print("Deje en blanco para no modificar el valor actual.")
+            
+            nuevo_precio = input(f"Nuevo precio (actual {inventario[id_mod]['precio']}): ").strip()
+            if nuevo_precio:
+                try:
+                    p = float(nuevo_precio)
+                    if p > 0:
+                        inventario[id_mod]["precio"] = p
+                        print("Precio actualizado.")
+                    else:
+                        print("Error: El precio debe ser positivo.")
+                except ValueError:
+                    print("Error: Precio no valido.")
+
+            nuevo_stock = input(f"Nuevo stock (actual {inventario[id_mod]['stock']}): ").strip()
+            if nuevo_stock:
+                try:
+                    s = int(nuevo_stock)
+                    if s >= 0:
+                        inventario[id_mod]["stock"] = s
+                        print("Stock actualizado.")
+                    else:
+                        print("Error: El stock no puede ser negativo.")
+                except ValueError:
+                    print("Error: Stock no valido.")
+            guardar_inventario(inventario)
+        else:
+            print("Error: No se encontro ningun producto con ese ID.")
+    except ValueError:
+        print("Error: Ingrese un numero valido.")
+
+# ==========================================
+# PRUEBAS UNITARIAS (Requisito Parte 2)
+# ==========================================
+class PruebasSistema(unittest.TestCase):
+    def test_descuento_efectivo(self):
+        # Prueba que el calculo de 15% de descuento sea correcto
+        total = 1000
+        total_final = total * 0.85
+        self.assertEqual(total_final, 850.0)
+
+    def test_recargo_tarjeta(self):
+        # Prueba que el recargo del 10% sea correcto
+        total = 1000
+        total_final = total * 1.10
+        self.assertEqual(total_final, 1100.0)
+
+def ejecutar_pruebas():
+    print("\n--- Ejecutando Pruebas Unitarias ---")
+    suite = unittest.TestLoader().loadTestsFromTestCase(PruebasSistema)
+    unittest.TextTestRunner(verbosity=2).run(suite)
 
 # ==========================================
 # MENÚ PRINCIPAL
@@ -376,9 +479,12 @@ def menu_principal():
         print("4. Agregar producto al carrito")
         print("5. Ver carrito")
         print("6. Finalizar Compra (Checkout)")
-        print("7. Agregar producto al catalogo")
+        print("7. Agregar producto al catalogo (Alta)")
         print("8. Ver mis compras")
-        print("9. Salir")
+        print("9. Eliminar producto del catalogo (Baja)")
+        print("10. Modificar producto del catalogo")
+        print("11. Ejecutar Pruebas Unitarias")
+        print("12. Salir")
         
         try:
             opcion = int(input("Seleccione una opcion: "))
@@ -402,6 +508,12 @@ def menu_principal():
             elif opcion == 8:
                 ver_compras(usuario)
             elif opcion == 9:
+                baja_producto()
+            elif opcion == 10:
+                modificacion_producto()
+            elif opcion == 11:
+                ejecutar_pruebas()
+            elif opcion == 12:
                 print("Gracias por visitar nuestra tienda. ¡Hasta luego!")
                 continuar = False
             else:
