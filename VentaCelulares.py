@@ -209,6 +209,22 @@ def procesar_pago(total, usuario):
     else:
         print("Método no reconocido.")
 
+def ver_compras(usuario):
+    print("\n--- Mi Historial de Compras ---")
+    base_nombre = f"recibo_{usuario['dni']}"
+    extension = ".txt"
+    nombre_archivo = f"{base_nombre}{extension}"
+    contador = 1
+    buscando = True
+    while buscando:
+        try:
+            with open(nombre_archivo, "r", encoding="utf-8") as f:
+                print(f"Recibo encontrado: {nombre_archivo}")
+            nombre_archivo = f"{base_nombre}_{contador}{extension}"
+            contador += 1
+        except FileNotFoundError:
+            buscando = False
+
 def menu_principal():
     usuario = validar_datos_usuario()
     continuar = True
