@@ -149,6 +149,26 @@ def ver_carrito():
     print(f"TOTAL: ${total}")
     return total
 
+def generar_recibo_txt(usuario, metodo_pago, total, total_final, detalles_pago):
+    base_nombre = f"recibo_{usuario['dni']}"
+    extension = ".txt"
+    nombre_archivo = f"{base_nombre}{extension}"
+    
+    contador = 1
+    creado = False
+    while not creado:
+        try:
+            with open(nombre_archivo, "x", encoding="utf-8") as f:
+                f.write(f"Cliente DNI: {usuario['dni']}\n")
+                f.write(f"Email: {usuario['email']}\n\n")
+                f.write(f"TOTAL PAGADO: ${total_final:.2f}\n")
+            creado = True
+        except FileExistsError:
+            nombre_archivo = f"{base_nombre}_{contador}{extension}"
+            contador += 1
+            
+    print(f"\n[+] Se ha generado un nuevo recibo: {nombre_archivo}")
+
 def procesar_pago(total, usuario):
     print("\n--- Checkout ---")
     respuesta = input("¿Posees un cupón de descuento mágico? (s/n): ").lower()
