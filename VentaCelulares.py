@@ -49,11 +49,11 @@ def validar_datos_usuario():
     email_valido = False
     email = ""
     while not email_valido:
-        email = input("Ingrese su correo electrónico: ")
-        if "@" in email and "." in email.split("@")[-1] and len(email) > 5:
+        email = input("Ingrese su correo electronico: ")
+        if re.match(r"^[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,}$", email):
             email_valido = True
         else:
-            print("Error: Correo electrónico inválido.")
+            print("Error: El correo no tiene un formato valido.")
 
     # compruebo que el telefono tenga los 10 numeros
     telefono_valido = False
