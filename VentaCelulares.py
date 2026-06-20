@@ -157,10 +157,32 @@ def agregar_al_carrito():
                     # bajo el stock
                     inventario[id_prod]["stock"] -= cantidad
                     guardar_inventario(inventario) # guardamos los cambios
-                    subtotal = inventario[id_prod]["precio"] * cantidad
-                    # Requisito Tuplas: la info no debe modificarse una vez en el carrito
-                    item = (id_prod, inventario[id_prod]["marca"], inventario[id_prod]["modelo"], cantidad, inventario[id_prod]["precio"], subtotal)
-                    carrito.append(item)
+                    subtotal = inventario[id_prod]["precio"] * cantidad# Verificar si el producto ya existe en el carrito
+                    producto_encontrado = False
+                    
+                    for i in range(len(carrito)):
+                        if carrito[i][0] == id_prod:  # mismo ID
+                            nueva_cantidad = carrito[i][3] + cantidad
+                            nuevo_subtotal = nueva_cantidad * carrito[i][4]
+                            carrito[i] = (
+                                carrito[i][0],  # id
+                                carrito[i][1],  # marca
+                                carrito[i][2],  # modelo
+                                nueva_cantidad,
+                                carrito[i][4],  # precio unitario
+                                nuevo_subtotal
+                                )
+                            producto_encontrado = True
+                            break
+                    if not producto_encontrado:
+                        item = (
+                            id_prod,
+                            inventario[id_prod]["marca"],
+                            inventario[id_prod]["modelo"],
+                            cantidad,
+                            inventario[id_prod]["precio"],
+                            subtotal)
+                        carrito.append(item)
                     print(f"\n¡{cantidad} x {inventario[id_prod]['modelo']} agregado(s) al carrito!")
                 else:
                     print("\nError: No hay suficiente stock disponible.")
