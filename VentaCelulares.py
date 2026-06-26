@@ -160,7 +160,8 @@ def agregar_al_carrito():
                     subtotal = inventario[id_prod]["precio"] * cantidad
                     producto_encontrado = False
                     
-                    for i in range(len(carrito)):
+                    i = 0
+                    while i < len(carrito) and not producto_encontrado:
                         if carrito[i][0] == id_prod:  # mismo ID
                             nueva_cantidad = carrito[i][3] + cantidad
                             nuevo_subtotal = nueva_cantidad * carrito[i][4]
@@ -173,7 +174,7 @@ def agregar_al_carrito():
                                 nuevo_subtotal
                                 )
                             producto_encontrado = True
-                            break
+                        i += 1
                     if not producto_encontrado:
                         item = (
                             id_prod,
@@ -461,7 +462,7 @@ def modificacion_producto():
         print("Error: Ingrese un numero valido.")
 
 # ==========================================
-# PRUEBAS UNITARIAS (Requisito Parte 2)
+# PRUEBAS UNITARIAS
 # ==========================================
 class PruebasSistema(unittest.TestCase):
     def test_descuento_efectivo(self):
